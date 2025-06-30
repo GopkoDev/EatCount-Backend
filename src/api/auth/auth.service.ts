@@ -1,13 +1,15 @@
 import {
   Injectable,
+  BadRequestException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { TelegramLoginRequest } from './dto/telegram.dto';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import * as crypto from 'crypto';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { isDev } from 'src/common/utils/is-dev';
+import { TelegramLoginRequest } from './dto/telegram.dto';
 import type { Request, Response } from 'express';
 import type { JwtPayload } from './interfaces/jwt.interface';
 
@@ -17,6 +19,7 @@ export class AuthService {
   private readonly JWT_REFRESH_TOKEN_TTL: string;
   private readonly COOKIE_DOMAIN: string;
   private readonly COOKIE_NAME = 'refreshToken';
+  private readonly TELEGRAM_BOT_TOKEN: string;
 
   constructor(
     private readonly prismaService: PrismaService,
@@ -24,6 +27,8 @@ export class AuthService {
     private jwtService: JwtService,
   ) {
     this.COOKIE_DOMAIN = this.configService.getOrThrow<string>('COOKIE_DOMAIN');
+    this.TELEGRAM_BOT_TOKEN =
+      this.configService.getOrThrow<string>('TELEGRAM_BOT_TOKEN');
     this.JWT_ACCESS_TOKEN_TTL = this.configService.getOrThrow<string>(
       'JWT_ACCESS_TOKEN_TTL',
     );
@@ -33,15 +38,26 @@ export class AuthService {
   }
 
   async loginWithTelegram(res: Response, dto: TelegramLoginRequest) {
-    const user = await this.prismaService.user.findFirst({
-      where: {
-        telegramId: dto.id.toString(),
+    if (!this.isValidTelegramUser(dto)) {
+      throw new BadRequestException('Недійсні дані Telegram');
+    }
+
+    const telegramId = dto.id.toString();
+    const telegramUsername = dto.username || '';
+    const name = dto.first_name
+      ? `${dto.first_name} ${dto.last_name || ''}`.trim()
+      : '';
+
+    const user = await this.prismaService.user.upsert({
+      where: { telegramId },
+      update: { name, telegramUsername },
+      create: {
+        telegramId,
+        name,
+        telegramUsername,
+        photoUrl: dto.photo_url || '',
       },
     });
-
-    if (!user) {
-      throw new UnauthorizedException('Користувач не знайдений');
-    }
 
     return this.auth(res, user.id);
   }
@@ -75,7 +91,50 @@ export class AuthService {
     return { message: 'Logout successful' };
   }
 
+  private isValidTelegramUser(dto: TelegramLoginRequest) {
+    const { hash, ...data } = dto;
+
+    const authDate = data.auth_date;
+    if (authDate) {
+      const currentTime = Math.floor(Date.now() / 1000);
+      const maxAge = 60; // 60 seconds (1 minute)
+
+      if (currentTime - authDate > maxAge) {
+        return false;
+      }
+    }
+
+    const filteredData: Record<string, string | number> = {};
+
+    Object.keys(data).forEach((key) => {
+      const value = data[key as keyof typeof data];
+      if (value !== undefined && value !== null) {
+        filteredData[key] = value;
+      }
+    });
+
+    const sortedKeys = Object.keys(filteredData).sort();
+
+    const dataCheckString = sortedKeys
+      .map((key) => `${key}=${filteredData[key]}`)
+      .join('\n');
+
+    const secretKey = crypto
+      .createHash('sha256')
+      .update(this.TELEGRAM_BOT_TOKEN)
+      .digest();
+
+    const computedHash = crypto
+      .createHmac('sha256', secretKey)
+      .update(dataCheckString)
+      .digest('hex');
+
+    return computedHash === hash;
+  }
+
   async validateUser(id: string) {
+    //used in JwtStrategy to validate user
+
     const user = await this.prismaService.user.findUnique({
       where: { id },
     });

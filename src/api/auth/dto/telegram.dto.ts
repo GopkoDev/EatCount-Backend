@@ -22,6 +22,7 @@ export class TelegramLoginRequest {
     example: 'john_doe',
   })
   @IsString()
+  @IsOptional()
   username: string;
 
   @ApiProperty({
@@ -39,15 +40,6 @@ export class TelegramLoginRequest {
   @IsString()
   @IsOptional()
   last_name: string;
-
-  @ApiProperty({
-    description: 'User language code (optional)',
-    example: 'en',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  language_code: string;
 
   @ApiProperty({
     description: 'URL to user profile photo (optional)',

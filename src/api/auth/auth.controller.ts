@@ -8,19 +8,20 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { TelegramLoginRequest } from './dto/telegram.dto';
-import type { Request, Response } from 'express';
 import {
   ApiBadRequestResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { User } from '@prisma/client';
+import { AuthService } from './auth.service';
+import { TelegramLoginRequest } from './dto/telegram.dto';
 import { AuthResponse } from './dto/auth.dto';
 import { Authorization } from '../../common/decorators/authorization.decorator';
 import { Authorizate } from '../../common/decorators/authorizate.decorator';
-import { User } from '@prisma/client';
+import type { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -34,9 +35,6 @@ export class AuthController {
   @ApiOkResponse({
     type: AuthResponse,
     description: 'Successfully logged in or registered with Telegram.',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'Unauthorized - user not found or invalid credentials.',
   })
   @ApiBadRequestResponse({
     description: 'Bad Request - invalid Telegram login data.',
@@ -62,8 +60,8 @@ export class AuthController {
   @ApiUnauthorizedResponse({
     description: 'Unauthorized - invalid or expired refresh token.',
   })
-  @ApiBadRequestResponse({
-    description: 'Bad Request - missing refresh token in cookies.',
+  @ApiNotFoundResponse({
+    description: 'Not Found - user not found.',
   })
   @Post('/refresh')
   @HttpCode(HttpStatus.OK)
