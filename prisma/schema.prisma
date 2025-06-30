@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MealItem {
+  id                 String @id
+  mealId             String
+  name               String
+  amountGrams        Float
+  calories           Float
+  protein            Float
+  fat                Float
+  carbs              Float
+  saturatedFat       Float
+  polyunsaturatedFat Float
+  monounsaturatedFat Float
+  cholesterol        Float
+  sodium             Float
+  potassium          Float
+  fiber              Float
+  sugar              Float
+  vitaminA           Float
+  vitaminC           Float
+  calcium            Float
+  iron               Float
+  transFat           Float?
+  addedSugars        Float?
+  vitaminD           Float?
+  meals              meals  @relation(fields: [mealId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                          String                        @id
+  name                        String?
+  photo_url                   String?
+  verified                    DateTime?
+  twoFactorEnabled            Boolean                       @default(false)
+  twoFactorSecret             String?
+  telegramId                  String?                       @unique
+  telegram_username           String?
+  language_code               String?
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime
+  api_request_logs            api_request_logs[]
+  failed_search_in_fat_secret failed_search_in_fat_secret[]
+  meals                       meals[]
+  refresh_tokens              refresh_tokens[]
+  targets                     targets?
+}
+
+model api_request_logs {
+  id               String   @id
+  timestamp        DateTime @default(now())
+  userId           String
+  model            String
+  promptTokens     Int
+  completionTokens Int
+  totalTokens      Int
+  queryText        String
+  User             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model failed_search_in_fat_secret {
+  id              String   @id
+  userId          String
+  timestamp       DateTime @default(now())
+  name            String
+  weight          Float
+  query           String
+  additionalTerms String[]
+  excludeTerms    String[]
+  errorMessage    String?
+  User            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model meals {
+  id            String     @id
+  userId        String
+  type          MealType
+  timestamp     DateTime
+  description   String
+  totalCalories Int
+  totalProtein  Float
+  totalFat      Float
+  totalCarbs    Float
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime
+  MealItem      MealItem[]
+  User          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model refresh_tokens {
+  id        String   @id
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model targets {
+  id            String @id
+  userId        String @unique
+  calorieTarget Int
+  User          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
