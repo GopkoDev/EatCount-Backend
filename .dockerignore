@@ -54,12 +54,13 @@ README.md
 Dockerfile
 .dockerignore
 
-# Development files
-src
+# Development files (keep these for build)
+# src - NEEDED for build
+# test - not needed for production
 test
-tsconfig.json
-tsconfig.build.json
-nest-cli.json
+# tsconfig.json - NEEDED for build
+# tsconfig.build.json - NEEDED for build  
+# nest-cli.json - NEEDED for build
 eslint.config.mjs
 .prettierrc
 jest.config.js
