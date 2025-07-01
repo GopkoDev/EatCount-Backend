@@ -72,7 +72,8 @@ export class AuthService {
     const payload: JwtPayload = await this.jwtService.verifyAsync(refreshToken);
 
     if (!payload || !payload.userId) {
-      throw new UnauthorizedException('Відсутній токен оновлення');
+      this.setCookie(res, '', new Date(0));
+      throw new UnauthorizedException('Недійсний токен оновлення');
     }
 
     const user = await this.prismaService.user.findUnique({
@@ -80,6 +81,7 @@ export class AuthService {
     });
 
     if (!user) {
+      this.setCookie(res, '', new Date(0));
       throw new NotFoundException('Користувач не знайдений');
     }
 
@@ -88,7 +90,7 @@ export class AuthService {
 
   logout(res: Response) {
     this.setCookie(res, '', new Date(0));
-    return { message: 'Logout successful' };
+    return { message: 'Користувач успішно вийшов з системи' };
   }
 
   private isValidTelegramUser(dto: TelegramLoginRequest) {
