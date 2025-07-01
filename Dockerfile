@@ -1,16 +1,6 @@
 # Multi-stage build for production optimization
 FROM node:20-alpine AS base
 
-# Install dependencies only when needed
-FROM base AS deps
-WORKDIR /app
-
-# Copy package files
-COPY package.json package-lock.json* ./
-
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
-
 # Development dependencies for build
 FROM base AS builder
 WORKDIR /app
@@ -30,6 +20,9 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
+
 # Production image
 FROM base AS runner
 WORKDIR /app
@@ -38,15 +31,11 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nestjs
 
-# Copy production dependencies
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy built application
+# Copy everything from builder (production node_modules + built app + generated Prisma)
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-
-# Copy package.json for runtime
-COPY package.json ./
+COPY --from=builder /app/package.json ./package.json
 
 # Change ownership to non-root user
 RUN chown -R nestjs:nodejs /app
