@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -10,17 +9,16 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { User } from '@prisma/client';
 import { AuthService } from './auth.service';
 import { TelegramLoginRequest } from './dto/telegram.dto';
 import { AuthResponse } from './dto/auth.dto';
-import { Authorization } from '../../common/decorators/authorization.decorator';
-import { Authorizate } from '../../common/decorators/authorizate.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import type { Request, Response } from 'express';
 
 @Controller('auth')
@@ -39,6 +37,7 @@ export class AuthController {
   @ApiBadRequestResponse({
     description: 'Bad Request - invalid Telegram login data.',
   })
+  @Public()
   @Post('/telegram')
   @HttpCode(HttpStatus.OK)
   async loginWithTelegram(
@@ -63,6 +62,7 @@ export class AuthController {
   @ApiNotFoundResponse({
     description: 'Not Found - user not found.',
   })
+  @Public()
   @Post('/refresh')
   @HttpCode(HttpStatus.OK)
   async refreshTokens(
@@ -88,16 +88,13 @@ export class AuthController {
       },
     },
   })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - invalid or expired token',
+  })
+  @ApiBearerAuth()
   @Post('/logout')
   @HttpCode(HttpStatus.OK)
   logout(@Res({ passthrough: true }) res: Response) {
     return this.authService.logout(res);
-  }
-
-  @Authorization()
-  @Get('/me')
-  @HttpCode(HttpStatus.OK)
-  getMe(@Authorizate() user: User) {
-    return user;
   }
 }

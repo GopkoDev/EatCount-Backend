@@ -132,20 +132,6 @@ export class AuthService {
     return computedHash === hash;
   }
 
-  async validateUser(id: string) {
-    //used in JwtStrategy to validate user
-
-    const user = await this.prismaService.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Користувач не знайдений');
-    }
-
-    return user;
-  }
-
   private auth = (res: Response, userId: string) => {
     const { accessToken, refreshToken } = this.generateTokens(userId);
     const expires = Date.now() + 60 * 60 * 24 * 7 * 1000; // 7 days in milliseconds

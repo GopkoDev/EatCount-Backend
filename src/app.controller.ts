@@ -1,5 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { Public } from './common/decorators';
 
 @Controller()
 export class AppController {
@@ -17,6 +18,7 @@ export class AppController {
       },
     },
   })
+  @Public()
   @Get('health')
   getHealth() {
     return {
