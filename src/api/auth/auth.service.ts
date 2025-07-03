@@ -1,7 +1,6 @@
 import {
   Injectable,
   BadRequestException,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -59,7 +58,19 @@ export class AuthService {
       },
     });
 
-    return this.auth(res, user.id);
+    const { accessToken, refreshToken } = this.generateTokens(user.id);
+    const expires = Date.now() + 60 * 60 * 24 * 7 * 1000; // 7 days in milliseconds
+
+    await this.prismaService.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: new Date(expires),
+      },
+    });
+
+    this.setCookie(res, refreshToken, new Date(expires));
+    return { accessToken };
   }
 
   async refreshTokens(req: Request, res: Response) {
@@ -69,27 +80,59 @@ export class AuthService {
       throw new UnauthorizedException('Відсутній токен оновлення');
     }
 
-    const payload: JwtPayload = await this.jwtService.verifyAsync(refreshToken);
+    const storedToken = await this.prismaService.refreshToken.findUnique({
+      where: { token: refreshToken },
+      include: { user: true },
+    });
 
-    if (!payload || !payload.userId) {
+    if (!storedToken) {
       this.setCookie(res, '', new Date(0));
       throw new UnauthorizedException('Недійсний токен оновлення');
     }
 
-    const user = await this.prismaService.user.findUnique({
-      where: { id: payload.userId },
-    });
-
-    if (!user) {
+    if (storedToken.expiresAt < new Date()) {
+      await this.prismaService.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
       this.setCookie(res, '', new Date(0));
-      throw new NotFoundException('Користувач не знайдений');
+      throw new UnauthorizedException('Токен оновлення закінчився');
     }
 
-    return this.auth(res, user.id);
+    const payload: JwtPayload = await this.jwtService.verifyAsync(refreshToken);
+
+    if (!payload || !payload.userId || payload.userId !== storedToken.userId) {
+      await this.prismaService.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+      this.setCookie(res, '', new Date(0));
+      throw new UnauthorizedException('Недійсний токен оновлення');
+    }
+
+    const { accessToken, refreshToken: newRefreshToken } = this.generateTokens(
+      storedToken.user.id,
+    );
+    const expires = Date.now() + 60 * 60 * 24 * 7 * 1000; // 7 days in milliseconds
+
+    await this.prismaService.refreshToken.update({
+      where: { id: storedToken.id },
+      data: {
+        token: newRefreshToken,
+        expiresAt: new Date(expires),
+      },
+    });
+
+    this.setCookie(res, newRefreshToken, new Date(expires));
+    return { accessToken };
   }
 
-  logout(res: Response) {
+  async logout(req: Request, res: Response) {
+    const refreshToken = req.cookies?.[this.COOKIE_NAME] as string | undefined;
+
     this.setCookie(res, '', new Date(0));
+    await this.prismaService.refreshToken.deleteMany({
+      where: { token: refreshToken },
+    });
+
     return { message: 'Користувач успішно вийшов з системи' };
   }
 
@@ -134,15 +177,6 @@ export class AuthService {
     return computedHash === hash;
   }
 
-  private auth = (res: Response, userId: string) => {
-    const { accessToken, refreshToken } = this.generateTokens(userId);
-    const expires = Date.now() + 60 * 60 * 24 * 7 * 1000; // 7 days in milliseconds
-
-    this.setCookie(res, refreshToken, new Date(expires));
-
-    return { accessToken };
-  };
-
   private generateTokens(userId: string) {
     const payload: JwtPayload = { userId };
 
@@ -168,5 +202,17 @@ export class AuthService {
       sameSite: isDev(this.configService) ? 'none' : 'lax',
       expires,
     });
+  }
+
+  async cleanupExpiredTokens() {
+    const deleted = await this.prismaService.refreshToken.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date(),
+        },
+      },
+    });
+
+    return { deletedCount: deleted.count };
   }
 }

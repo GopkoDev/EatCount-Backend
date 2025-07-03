@@ -94,7 +94,7 @@ export class AuthController {
   @ApiBearerAuth()
   @Post('/logout')
   @HttpCode(HttpStatus.OK)
-  logout(@Res({ passthrough: true }) res: Response) {
-    return this.authService.logout(res);
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    return await this.authService.logout(req, res);
   }
 }
