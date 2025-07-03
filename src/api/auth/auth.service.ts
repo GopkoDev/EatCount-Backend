@@ -203,16 +203,4 @@ export class AuthService {
       expires,
     });
   }
-
-  async cleanupExpiredTokens() {
-    const deleted = await this.prismaService.refreshToken.deleteMany({
-      where: {
-        expiresAt: {
-          lt: new Date(),
-        },
-      },
-    });
-
-    return { deletedCount: deleted.count };
-  }
 }
