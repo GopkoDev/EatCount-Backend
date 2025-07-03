@@ -142,7 +142,7 @@ export class AuthService {
     const authDate = data.auth_date;
     if (authDate) {
       const currentTime = Math.floor(Date.now() / 1000);
-      const maxAge = 60; // 60 seconds (1 minute)
+      const maxAge = isDev(this.configService) ? 86400 : 60; // 1 day for development, 60 seconds (1 minute) for production
 
       if (currentTime - authDate > maxAge) {
         return false;
