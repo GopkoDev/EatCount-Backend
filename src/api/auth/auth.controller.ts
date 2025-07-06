@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
-  ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -77,13 +76,13 @@ export class AuthController {
     description: 'Clear the refresh token cookie to log out the user.',
   })
   @ApiOkResponse({
-    description: 'Successfully logged out',
+    description: 'Користувач успішно вийшов з системи',
     schema: {
       type: 'object',
       properties: {
         message: {
           type: 'string',
-          example: 'Successfully logged out',
+          example: 'Користувач успішно вийшов з системи',
         },
       },
     },
