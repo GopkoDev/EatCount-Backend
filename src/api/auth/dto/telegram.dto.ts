@@ -20,6 +20,7 @@ export class TelegramLoginRequest {
   @ApiProperty({
     description: 'Telegram username of the user',
     example: 'john_doe',
+    required: false,
   })
   @IsString()
   @IsOptional()
