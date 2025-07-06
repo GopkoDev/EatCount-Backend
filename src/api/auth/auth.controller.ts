@@ -91,7 +91,7 @@ export class AuthController {
   @ApiUnauthorizedResponse({
     description: 'Unauthorized - invalid or expired token',
   })
-  @ApiBearerAuth()
+  @Public()
   @Post('/logout')
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
