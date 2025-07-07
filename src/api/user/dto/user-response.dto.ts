@@ -14,14 +14,6 @@ export class UserResponse {
   @Expose()
   photoUrl?: string;
 
-  @ApiProperty({ description: 'Verification date', required: false })
-  @Expose()
-  verified?: Date;
-
-  @ApiProperty({ description: 'Two-factor authentication enabled' })
-  @Expose()
-  twoFactorEnabled: boolean;
-
   @ApiProperty({ description: 'Telegram username', required: false })
   @Expose()
   telegramUsername?: string;
@@ -29,6 +21,10 @@ export class UserResponse {
   @ApiProperty({ description: 'User language code', required: false })
   @Expose()
   languageCode?: string;
+
+  @ApiProperty({ description: 'User role', enum: ['USER', 'ADMIN'] })
+  @Expose()
+  role: string;
 
   @ApiProperty({ description: 'Account creation date' })
   @Expose()
@@ -39,9 +35,6 @@ export class UserResponse {
   updatedAt: Date;
 
   // Sensitive fields excluded from response
-  @Exclude()
-  twoFactorSecret?: string;
-
   @Exclude()
   telegramId?: string;
 
