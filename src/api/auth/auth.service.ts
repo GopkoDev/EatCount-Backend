@@ -43,18 +43,19 @@ export class AuthService {
 
     const telegramId = dto.id.toString();
     const telegramUsername = dto.username || '';
+    const photoUrl = dto.photo_url || '';
     const name = dto.first_name
       ? `${dto.first_name} ${dto.last_name || ''}`.trim()
       : '';
 
     const user = await this.prismaService.user.upsert({
       where: { telegramId },
-      update: { name, telegramUsername },
+      update: { name, telegramUsername, photoUrl },
       create: {
         telegramId,
         name,
         telegramUsername,
-        photoUrl: dto.photo_url || '',
+        photoUrl,
       },
     });
 
