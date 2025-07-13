@@ -23,25 +23,40 @@ export class UserService {
   async getCurrentUser(userId: string): Promise<UserResponse> {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
+      include: {
+        targets: true,
+      },
     });
 
     if (!user) {
       throw new NotFoundException('Користувач не знайдений');
     }
 
-    // Use class-transformer for safe data return
-    return plainToClass(UserResponse, user, { excludeExtraneousValues: true });
+    const userResponse = plainToClass(UserResponse, user, {
+      excludeExtraneousValues: true,
+    });
+
+    const calorieTarget = user.targets ? user.targets.calorieTarget : null;
+    return { ...userResponse, calorieTarget };
   }
 
   async getUserById(id: string): Promise<UserResponse> {
     const user = await this.prismaService.user.findUnique({
       where: { id },
+      include: {
+        targets: true,
+      },
     });
 
     if (!user) {
       throw new NotFoundException('Користувач не знайдений');
     }
 
-    return plainToClass(UserResponse, user, { excludeExtraneousValues: true });
+    const userResponse = plainToClass(UserResponse, user, {
+      excludeExtraneousValues: true,
+    });
+
+    const calorieTarget = user.targets ? user.targets.calorieTarget : null;
+    return { ...userResponse, calorieTarget };
   }
 }

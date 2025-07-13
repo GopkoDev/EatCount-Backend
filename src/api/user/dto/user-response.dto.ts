@@ -34,6 +34,14 @@ export class UserResponse {
   @Expose()
   updatedAt: Date;
 
+  @ApiProperty({
+    description: 'kcalorie target for the user',
+    required: false,
+    type: Number,
+  })
+  @Expose()
+  calorieTarget?: number | null;
+
   // Sensitive fields excluded from response
   @Exclude()
   telegramId?: string;
